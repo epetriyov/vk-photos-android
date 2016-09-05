@@ -9,10 +9,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.example.eugene.vkphotos.imageloader.ImageLoader;
-import com.example.eugene.vkphotos.imageloader.ImageLoaderImpl;
+import com.example.eugene.vkphotos.imageloader.ImageLoaderProvider;
 import com.vk.sdk.api.model.VKApiPhoto;
 
 /**
@@ -29,19 +28,26 @@ public class ImageDetailFragment extends Fragment {
         return fragment;
     }
 
+    public ImageLoader getImageLoader() {
+        if (getActivity() != null && getActivity() instanceof ImageLoaderProvider) {
+            return ((ImageLoaderProvider) getActivity()).getImageLoader();
+        }
+        return null;
+    }
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
         View view = inflater.inflate(R.layout.frag_image_details, container, false);
         final VKApiPhoto vkApiPhoto = getArguments().getParcelable(EXTRA_VK_API_PHOTO);
-        if (vkApiPhoto != null) {
+        final ImageLoader imageLoader = getImageLoader();
+        if (vkApiPhoto != null && imageLoader != null) {
             final ImageView imageView = (ImageView) view.findViewById(R.id.image_view);
             imageView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
 
                 @Override
                 public void onGlobalLayout() {
-                    ImageLoader imageLoader = new ImageLoaderImpl();
                     imageLoader.loadImage(Utils.getAvailableLargePhoto(vkApiPhoto), imageView, imageView.getWidth(), imageView.getHeight());
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
                         imageView.getViewTreeObserver().removeOnGlobalLayoutListener(this);

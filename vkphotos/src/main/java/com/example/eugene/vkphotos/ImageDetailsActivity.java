@@ -10,15 +10,19 @@ import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 
+import com.example.eugene.vkphotos.imageloader.ImageLoader;
+import com.example.eugene.vkphotos.imageloader.ImageLoaderImpl;
+import com.example.eugene.vkphotos.imageloader.ImageLoaderProvider;
 import com.vk.sdk.api.model.VKPhotoArray;
 
 /**
  * Created by Eugene on 04.09.2016.
  */
-public class ImageDetailsActivity extends FragmentActivity {
+public class ImageDetailsActivity extends FragmentActivity implements ImageLoaderProvider {
     private static final String EXTRA_VK_PHOTOS = "vk_photos";
     private static final String EXTRA_POSITION = "position";
     private PagerAdapter adapter;
+    private ImageLoader imageLoader;
 
     public static Intent buildIntent(Context context, VKPhotoArray vkPhotoArray, int position) {
         Intent intent = new Intent(context, ImageDetailsActivity.class);
@@ -27,16 +31,25 @@ public class ImageDetailsActivity extends FragmentActivity {
         return intent;
     }
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         VKPhotoArray vkPhotoArray = getIntent().getParcelableExtra(EXTRA_VK_PHOTOS);
         int position = getIntent().getIntExtra(EXTRA_POSITION, 0);
         setContentView(R.layout.act_image_details);
+        imageLoader = new ImageLoaderImpl();
         adapter = new ImagePagerAdapter(getSupportFragmentManager(), vkPhotoArray);
         ViewPager pager = (ViewPager) findViewById(R.id.pager);
         pager.setAdapter(adapter);
-        pager.setCurrentItem(position);
+        if (vkPhotoArray != null && position < vkPhotoArray.size()) {
+            pager.setCurrentItem(position);
+        }
+    }
+
+    @Override
+    public ImageLoader getImageLoader() {
+        return imageLoader;
     }
 
     public static class ImagePagerAdapter extends FragmentStatePagerAdapter {

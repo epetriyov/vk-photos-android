@@ -26,8 +26,6 @@ public class ImagesGridActivity extends Activity {
 
     private ImagesAdapter imagesAdapter;
 
-    private VKPhotoArray vkPhotoArray;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -39,20 +37,27 @@ public class ImagesGridActivity extends Activity {
         loadPhotoUrls();
     }
 
+    private void updateAdapter(VKPhotoArray vkApiPhotos) {
+        imagesAdapter.setPhotos(vkApiPhotos);
+        imagesAdapter.notifyDataSetChanged();
+    }
+
+    private void showError(String errorMessage) {
+        Utils.showMessage(this, errorMessage);
+    }
+
     private void loadAlbumPhotos(int albumId) {
         VKRequest getPhotos = new VKRequest("photos.get",
                 VKParameters.from(VKApiConst.ALBUM_ID, albumId), VKPhotoArray.class);
         getPhotos.executeWithListener(new VKRequest.VKRequestListener() {
                                           @Override
                                           public void onComplete(VKResponse response) {
-                                              vkPhotoArray = (VKPhotoArray) response.parsedModel;
-                                              imagesAdapter.setPhotos(vkPhotoArray);
-                                              imagesAdapter.notifyDataSetChanged();
+                                              updateAdapter((VKPhotoArray) response.parsedModel);
                                           }
 
                                           @Override
                                           public void onError(VKError error) {
-                                              Utils.showMessage(ImagesGridActivity.this, error.errorMessage);
+                                              showError(error.errorMessage);
                                           }
                                       }
         );
@@ -65,7 +70,7 @@ public class ImagesGridActivity extends Activity {
             public void onComplete(VKResponse response) {
                 VKList<VKApiPhotoAlbum> albums = new VKList<>();
                 albums.fill(response.json, VKApiPhotoAlbum.class);
-                //
+                // load album with max photos count
                 int maxPhotosAlbumId = -1;
                 int maxPhotosCount = 0;
                 for (VKApiPhotoAlbum album : albums) {
@@ -81,7 +86,7 @@ public class ImagesGridActivity extends Activity {
 
             @Override
             public void onError(VKError error) {
-                Utils.showMessage(ImagesGridActivity.this, error.errorMessage);
+                showError(error.errorMessage);
             }
         });
     }

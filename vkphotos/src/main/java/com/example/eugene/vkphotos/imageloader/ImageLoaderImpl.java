@@ -22,7 +22,6 @@ import javax.net.ssl.HttpsURLConnection;
  * Created by Eugene on 04.09.2016.
  */
 public class ImageLoaderImpl implements ImageLoader {
-    private static final int TIMEOUT = 30000;
     private static final int HTTP_OK = 200;
     private final LruCache<String, Bitmap> mMemoryCache;
     private final ExecutorService executorService;
@@ -41,52 +40,7 @@ public class ImageLoaderImpl implements ImageLoader {
         };
     }
 
-    private void addBitmapToMemoryCache(String key, Bitmap bitmap) {
-        if (getBitmapFromMemCache(key) == null) {
-            mMemoryCache.put(key, bitmap);
-        }
-    }
-
-    private Bitmap getBitmapFromMemCache(String key) {
-        return mMemoryCache.get(key);
-    }
-
-    @Override
-    public void loadImage(final String imageUrl, ImageView imageView, final int width, final int height) {
-        if (imageUrl != null) {
-            final WeakReference<ImageView> imageViewWeakReference = new WeakReference<>(imageView);
-            Bitmap bitmap = getBitmapFromMemCache(imageUrl);
-            if (bitmap == null) {
-                executorService.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        byte[] imageBytes = null;
-                        try {
-                            imageBytes = downloadImage(imageUrl);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        if (imageBytes != null) {
-                            final Bitmap bitmap = getBitmap(imageBytes, width, height);
-                            handler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    addBitmapToMemoryCache(imageUrl, bitmap);
-                                    if (imageViewWeakReference.get() != null) {
-                                        imageViewWeakReference.get().setImageBitmap(bitmap);
-                                    }
-                                }
-                            });
-                        }
-                    }
-                });
-            } else {
-                imageView.setImageBitmap(bitmap);
-            }
-        }
-    }
-
-    public Bitmap getBitmap(byte[] response, int reqWidth, int reqHeight) {
+    private static Bitmap getBitmap(byte[] response, int reqWidth, int reqHeight) {
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
         BitmapFactory.decodeByteArray(response, 0, response.length, options);
@@ -95,7 +49,7 @@ public class ImageLoaderImpl implements ImageLoader {
         return BitmapFactory.decodeByteArray(response, 0, response.length, options);
     }
 
-    private byte[] downloadImage(String imageUrl) throws IOException {
+    private static byte[] downloadImage(String imageUrl) throws IOException {
         byte[] response = null;
         URL url = new URL(imageUrl);
         HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
@@ -130,6 +84,74 @@ public class ImageLoaderImpl implements ImageLoader {
             }
         }
         return inSampleSize;
+    }
+
+    private void addBitmapToMemoryCache(String key, Bitmap bitmap) {
+        synchronized (mMemoryCache) {
+            if (getBitmapFromMemCache(key) == null) {
+                mMemoryCache.put(key, bitmap);
+            }
+        }
+    }
+
+    private Bitmap getBitmapFromMemCache(String key) {
+        return mMemoryCache.get(key);
+    }
+
+    @Override
+    public void loadImage(final String imageUrl, ImageView imageView, final int width, final int height) {
+        if (imageUrl != null) {
+            executorService.execute(new RunnableLoader(imageUrl, imageView, width, height));
+        }
+    }
+
+    private class RunnableLoader implements Runnable {
+
+        private final WeakReference<ImageView> imageViewWeakReference;
+
+        private final int width;
+
+        private final int height;
+
+        private final String imageUrl;
+
+        public RunnableLoader(String imageUrl, ImageView imageView, int width, int height) {
+            this.imageViewWeakReference = new WeakReference<>(imageView);
+            this.width = width;
+            this.height = height;
+            this.imageUrl = imageUrl;
+        }
+
+        @Override
+        public void run() {
+            Bitmap bitmap = getBitmapFromMemCache(imageUrl);
+            if (bitmap == null) {
+                byte[] imageBytes = null;
+                try {
+                    imageBytes = downloadImage(imageUrl);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                if (imageBytes != null) {
+                    bitmap = getBitmap(imageBytes, width, height);
+                    addBitmapToMemoryCache(imageUrl, bitmap);
+                    postBitmap(bitmap);
+                }
+            } else {
+                postBitmap(bitmap);
+            }
+        }
+
+        private void postBitmap(final Bitmap bitmap) {
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (imageViewWeakReference.get() != null) {
+                        imageViewWeakReference.get().setImageBitmap(bitmap);
+                    }
+                }
+            });
+        }
     }
 
 

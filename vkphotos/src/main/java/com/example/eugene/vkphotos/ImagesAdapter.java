@@ -61,7 +61,9 @@ public class ImagesAdapter extends RecyclerView.Adapter<ImagesAdapter.ImageViewH
         }
 
         public void bind(final int position) {
-            imageLoader.loadImage(Utils.getAvailableSmallPhoto(photoArray.get(position)), (ImageView) itemView, width, height);
+            ImageView imageView = (ImageView) itemView;
+            imageView.setImageBitmap(null);
+            imageLoader.loadImage(Utils.getAvailableSmallPhoto(photoArray.get(position)), imageView, width, height);
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {

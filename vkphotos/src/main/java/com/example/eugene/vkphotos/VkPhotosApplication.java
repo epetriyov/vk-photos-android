@@ -14,4 +14,5 @@ public class VkPhotosApplication extends Application{
         super.onCreate();
         VKSdk.initialize(this);
     }
+
 }
