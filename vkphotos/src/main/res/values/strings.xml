@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">VkPhotos</string>
+    <string name="login_label">Вход</string>
+    <string name="photos_label">Фотографии</string>
+    <string name="photo_label">Фотография</string>
+    <string name="btn_login">Войти</string>
+    <integer name="com_vk_sdk_AppId">5616789</integer>
+</resources>
